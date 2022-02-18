@@ -54,7 +54,7 @@ export class JsonDBHandler implements IDBHandler {
    * @param db The database to load
    * @returns loaded database
    */
-  async loadDB(db: string): Promise<IJsonDB> {
+  private async loadDB(db: string): Promise<IJsonDB> {
     let d: IJsonDB;
 
     if (this.cache.has(db)) {

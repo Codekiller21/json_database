@@ -26,11 +26,16 @@ app.get("/get/:database(\\w+)/:id(\\w+)", async (req, res) => {
 
   console.log(`Get request: {${req.rawHeaders}}`);
 
-  const ret = await db.get(database, id);
-  if (ret === undefined) {
+  try {
+    const ret = await db.get(database, id);
+    if (ret === undefined) {
+      res.sendStatus(500);
+    }
+    res.json(ret);
+  }
+  catch (e) {
     res.sendStatus(500);
   }
-  res.json(ret);
 });
 
 app.post("/set/:database(\\w+)/:id(\\w+)", async (req, res) => {
@@ -40,12 +45,47 @@ app.post("/set/:database(\\w+)/:id(\\w+)", async (req, res) => {
   console.log(`Set request {${req.rawHeaders}}`);
 
   try {
-    await db.set(database, id, req.body);
+    if (!await db.set(database, id, req.body)) {
+      res.sendStatus(404);
+    }
   }
   catch (e) {
-    if (e instanceof Error) {
-      res.sendStatus(500);
+    res.sendStatus(500);
+  }
+
+  res.end();
+});
+
+app.head("/delete/:database(\\w+)/:id(\\w+)", async (req, res) => {
+  const database = req.params.database;
+  const id = req.params.id;
+
+  console.log(`Set request {${req.rawHeaders}}`);
+
+  try {
+    if (!await db.delete(database, id)) {
+      res.sendStatus(404);
     }
+    res.end();
+  }
+  catch (e) {
+    res.sendStatus(500);
+  }
+});
+
+app.post("/add/:database(\\w+)/:id(\\w+)", async (req, res) => {
+  const database = req.params.database;
+  const id = req.params.id;
+
+  console.log(`Add request {${req.rawHeaders}}`);
+
+  try {
+    if (!await db.add(database, id, req.body)) {
+      res.sendStatus(403);
+    }
+  }
+  catch (e) {
+    res.sendStatus(500);
   }
 
   res.end();

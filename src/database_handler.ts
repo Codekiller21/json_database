@@ -17,14 +17,18 @@ export interface IDBHandler {
    * @param db The database to search
    * @param id The ids value to check
    */
-  get(db: string, id: any): Promise<any>;
+  get(dbName: string, id: any): Promise<object>;
 
-  set(db: string, id: any, data: any): Promise<void>;
+  set(dbName: string, id: any, entry: object): Promise<boolean>;
+
+  delete(dbName: string, id: any): Promise<boolean>;
+
+  add(dbName: string, id: any, value: object): Promise<boolean>;
 }
 
 interface IJsonDB {
   id: string,
-  data: any[]
+  data: object[]
 }
 
 export class JsonDBHandler implements IDBHandler {
@@ -103,19 +107,57 @@ export class JsonDBHandler implements IDBHandler {
     });
   }
 
-  async set(db: string, id: any, data: any): Promise<void> {
-    await this.mut.runExclusive(async () => {
+  async set(db: string, id: any, data: object): Promise<boolean> {
+    return await this.mut.runExclusive(async () => {
       const d = await this.loadDB(db);
+
+      if (!data.hasOwnProperty(d.id)) {
+        return false;
+      }
 
       let count = 0;
       for (const end = d.data.length; count < end; count++) {
         if (d.data[count][d.id] === id) {
           d.data[count] = data;
-          return;
+          return true;
         }
       }
 
-      throw new Error("ID not found in table");
+      return false;
+    });
+  }
+
+  async delete(dbName: string, id: any): Promise<boolean> {
+    return await this.mut.runExclusive(async () => {
+      const db = await this.loadDB(dbName);
+
+      let count = 0;
+      for (const end = db.data.length; count < end; count++) {
+        if (db.data[count][db.id] === id) {
+          db.data.splice(count, 1);
+          return true;
+        }
+      }
+
+      return false;
+    });
+  }
+
+  async add(dbName: string, id: any, value: object): Promise<boolean> {
+    return await this.mut.runExclusive(async () => {
+      const db = await this.loadDB(dbName);
+
+      if (!value.hasOwnProperty(db.id)) {
+        return false;
+      }
+
+      if (db.data.find(v => v[db.id] === id) != undefined) {
+        return false;
+      }
+
+      db.data.push(value);
+
+      return true;
     });
   }
 }
